@@ -1,5 +1,12 @@
 package api
 
+// Contribution Summary Rule Constants
+const ContributionSummaryMonth = "THIS_MONTH"
+const ContributionSummaryAll = "ALL_TIME"
+
+// Sorting Contants
+const SortAlpha = "AZ"
+
 // GlobalInformationQuery returns the graphql query string for retrieving global information about Dlive
 func GlobalInformationQuery() string {
 	return `query GlobalInformation {
@@ -1285,7 +1292,7 @@ func TopContributorsQuery() string {
 	`
 }
 
-// HomePageLivestreamQuery gives the graphql query to get data about the livestreams that would be shown on the homepage
+// HomePageLivestreamQuery gives the graphql query to get data about the live streams that would be shown on the homepage
 func HomePageLivestreamQuery() string {
 	return `query HomePageLivestream($first: Int, $after: String, $languageID: Int, $categoryID: Int, $showNSFW: Boolean, $userLanguageCode: String) {
 		livestreams(input: {first: $first, after: $after, languageID: $languageID, categoryID: $categoryID, showNSFW: $showNSFW, order: TRENDING, userLanguageCode: $userLanguageCode}) {
@@ -1501,7 +1508,7 @@ func BrowsePageSearchCategoriesQuery() string {
 	`
 }
 
-// FollowingPageLivestreamsQuery returns the graphql query to get the streamers the corrently authenticated user is following
+// FollowingPageLivestreamsQuery returns the graphql query to get the streamers the currently authenticated user is following
 func FollowingPageLivestreamsQuery() string {
 	return `query FollowingPageLivestreams($first: Int, $after: String) {
 		livestreamsFollowing(first: $first, after: $after) {
@@ -1600,7 +1607,7 @@ func FollowingPageVideosQuery() string {
 	`
 }
 
-// SearchPageQuery returns the graphql query for seaching streamers, active streams, and videos for a specific term
+// SearchPageQuery returns the graphql query for searching streamers, active streams, and videos for a specific term
 func SearchPageQuery() string {
 	return `query SearchPage($text: String!, $first: Int, $after: String, $isLoggedIn: Boolean!) {
 		search(text: $text) {
