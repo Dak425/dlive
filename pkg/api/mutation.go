@@ -265,3 +265,16 @@ func GenerateStreamKeyMutation() string {
 	  }
 	  `
 }
+
+func DeleteLastBroadcast() string {
+	return `mutation DeletePastbroadcast($permlink: String!) {
+		  pastbroadcastDelete(permlink: $permlink) {
+		    err {
+		      code
+		      __typename
+		    }
+		    __typename
+		  }
+		}
+		`
+}
