@@ -304,3 +304,17 @@ func EmoteDeleteMutation() string {
 }
 `
 }
+
+// DeleteLastBroadcastMutation returns the graphql mutation for deleting a stream replay
+func DeleteLastBroadcastMutation() string {
+	return `mutation DeletePastbroadcast($permlink: String!) {
+		  pastbroadcastDelete(permlink: $permlink) {
+		    err {
+		      code
+		      __typename
+		    }
+		    __typename
+		  }
+		}
+		`
+}
