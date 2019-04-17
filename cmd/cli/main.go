@@ -20,7 +20,7 @@ func main() {
 	//resp, err := c.LivestreamProfileVideos("TheHighlord", "10")
 	//resp, err := c.LivestreamProfileReplays("TheHighlord", "10")
 	//resp, err := c.LivestreamProfileFollowers("TheHighlord", api.SortAlpha, "20", false)
-	//resp, err := c.LivestreamProfileFollowing("TheHighlord", "AZ", "20", false)
+	//resp, err := c.LivestreamProfileFollowing("TheHighlord", "api.SortAlpha", "20", false)
 	//resp, err := c.LivestreamProfileWallet("TheHighlord", "20", false)
 	//resp, err := c.TopContributors("TheHighlord", api.ContributionSummaryMonth, "10", false)
 	//resp, err := c.StreamChatBannedUsers("TheHighlord", "20", "")

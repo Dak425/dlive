@@ -9,6 +9,7 @@ import (
 
 // DefaultURL is the url used by a API client if none is given
 const DefaultURL = "https://graphigo.prd.dlive.tv/"
+const DefaultURLWebsocket = "ws://graphigo.prd.dlive.tv/"
 
 // Client is used to send requests to DLive's API
 type Client struct {
@@ -34,6 +35,12 @@ type request struct {
 	Vars  map[string]interface{} `json:"variables"`
 }
 
+type webSocketRequest struct {
+	ID      string  `json:"id"`
+	Type    string  `json:"type"`
+	Payload request `json:"payload"`
+}
+
 // GlobalInformation fetches language information about DLive
 func (c *Client) GlobalInformation() (interface{}, error) {
 	req := request{
@@ -43,13 +50,14 @@ func (c *Client) GlobalInformation() (interface{}, error) {
 	return c.run(req)
 }
 
+// Query Methods
 func (c *Client) LivestreamPage(displayName string, add bool, isLoggedIn bool) (interface{}, error) {
 	req := request{
 		Query: LivestreamPageQuery(),
 		Vars: map[string]interface{}{
 			"displayname": displayName,
-			"add": add,
-			"isLoggedIn": isLoggedIn,
+			"add":         add,
+			"isLoggedIn":  isLoggedIn,
 		},
 	}
 	return c.run(req)
@@ -60,8 +68,8 @@ func (c *Client) LivestreamChatRoomInfo(displayName string, isLoggedIn bool, lim
 		Query: LivestreamChatRoomInfoQuery(),
 		Vars: map[string]interface{}{
 			"displayname": displayName,
-			"isLoggedIn": isLoggedIn,
-			"limit": limit,
+			"isLoggedIn":  isLoggedIn,
+			"limit":       limit,
 		},
 	}
 	return c.run(req)
@@ -174,6 +182,13 @@ func (c *Client) AllowedActions(username string, streamer string) (interface{}, 
 	}
 	return c.run(req)
 }
+
+// Mutation Methods
+
+// Subscription Methods
+//func (c *Client) StreamMessageFeed(streamer string, stream <-chan interface{}) (error) {
+//
+//}
 
 func (c *Client) run(req request) (interface{}, error) {
 	var body bytes.Buffer

@@ -265,3 +265,42 @@ func GenerateStreamKeyMutation() string {
 	  }
 	  `
 }
+
+// EmoteSaveMutation returns the graphql mutation for saving a sticker emote for the logged in user
+func EmoteSaveMutation() string {
+	return `mutation EmoteSave($input: SaveEmoteInput!) {
+  saveEmote(input: $input) {
+    emote {
+      name
+      username
+      sourceURL
+      mimeType
+      level
+      type
+      __typename
+    }
+    err {
+      code
+      message
+      __typename
+    }
+    __typename
+  }
+}
+`
+}
+
+// EmoteDeleteMutation returns the graphql mutation for removing a sticker from the list of saved stickers for the logged in user
+func EmoteDeleteMutation() string {
+	return `mutation EmoteDelete($input: DeleteEmoteInput!) {
+  deleteEmote(input: $input) {
+    err {
+      code
+      message
+      __typename
+    }
+    __typename
+  }
+}
+`
+}
