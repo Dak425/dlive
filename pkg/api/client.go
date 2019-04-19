@@ -3,13 +3,15 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/gorilla/websocket"
 	"io"
+	"log"
 	"net/http"
 )
 
 // DefaultURL is the url used by a API client if none is given
 const DefaultURL = "https://graphigo.prd.dlive.tv/"
-const DefaultURLWebsocket = "ws://graphigo.prd.dlive.tv/"
+const DefaultURLWebsocket = "wss://graphigostream.prd.dlive.tv/"
 
 // Client is used to send requests to DLive's API
 type Client struct {
@@ -31,8 +33,9 @@ type response struct {
 }
 
 type request struct {
-	Query string                 `json:"query"`
-	Vars  map[string]interface{} `json:"variables"`
+	Query         string                 `json:"query"`
+	Vars          map[string]interface{} `json:"variables"`
+	OperationName string                 `json:"operationName"`
 }
 
 type webSocketRequest struct {
@@ -186,9 +189,20 @@ func (c *Client) AllowedActions(username string, streamer string) (interface{}, 
 // Mutation Methods
 
 // Subscription Methods
-//func (c *Client) StreamMessageFeed(streamer string, stream <-chan interface{}) (error) {
-//
-//}
+func (c *Client) StreamMessageFeed(streamer string, messages chan []byte) error {
+	req := webSocketRequest{
+		ID:   "1",
+		Type: "start",
+		Payload: request{
+			Query: StreamMessageSubscription(),
+			Vars: map[string]interface{}{
+				"streamer": "TheHighlord",
+			},
+			OperationName: "StreamMessageSubscription",
+		},
+	}
+	return c.connectWebsocket(req, messages)
+}
 
 func (c *Client) run(req request) (interface{}, error) {
 	var body bytes.Buffer
@@ -222,4 +236,50 @@ func (c *Client) run(req request) (interface{}, error) {
 	}
 
 	return data.Data, nil
+}
+
+func (c *Client) connectWebsocket(req webSocketRequest, messages chan []byte) error {
+	go func(req webSocketRequest, messages chan []byte) {
+		conn, _, err := websocket.DefaultDialer.Dial(DefaultURLWebsocket, http.Header{
+			"Sec-WebSocket-Protocol": []string{"graphql-ws"},
+			"Sec-WebSocket-Version": []string{"13"},
+		})
+
+		if err != nil {
+			log.Fatal("Dial:", err)
+			return
+		}
+
+		err = conn.WriteJSON(struct {
+			Type    string      `json:"type"`
+			Payload interface{} `json:"payload"`
+		}{
+			Type:    "connection_init",
+			Payload: map[string]interface{}{},
+		})
+
+		if err != nil {
+			log.Fatal("Connection Init:", err)
+			return
+		}
+
+		err = conn.WriteJSON(req)
+
+		if err != nil {
+			log.Fatal("GraphQL Subscription Start:", err)
+			return
+		}
+
+		defer conn.Close()
+
+		for {
+			_, m, err := conn.ReadMessage()
+			if err != nil {
+				log.Fatal("Read:", err)
+				return
+			}
+			messages <- m
+		}
+	}(req, messages)
+	return nil
 }
