@@ -196,7 +196,7 @@ func (c *Client) StreamMessageFeed(streamer string, messages chan []byte) error 
 		Payload: request{
 			Query: StreamMessageSubscription(),
 			Vars: map[string]interface{}{
-				"streamer": "TheHighlord",
+				"streamer": streamer,
 			},
 			OperationName: "StreamMessageSubscription",
 		},
@@ -262,6 +262,10 @@ func (c *Client) connectWebsocket(req webSocketRequest, messages chan []byte) er
 			log.Fatal("Connection Init:", err)
 			return
 		}
+
+		//temp, err := json.Marshal(req)
+		//
+		//log.Fatal(string(temp))
 
 		err = conn.WriteJSON(req)
 
