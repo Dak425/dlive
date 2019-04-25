@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 // DefaultURL is the url used by a API client if none is given
@@ -15,33 +16,9 @@ const DefaultURLWebsocket = "wss://graphigostream.prd.dlive.tv/"
 
 // Client is used to send requests to DLive's API
 type Client struct {
-	URL  string // The URL for DLive's API
-	Auth string // An authorization token to send along with requests
-}
-
-type responseError struct {
-	Message string
-}
-
-func (re responseError) Error() string {
-	return "GraphQL API Error: " + re.Message
-}
-
-type response struct {
-	Data   interface{}
-	Errors []responseError
-}
-
-type request struct {
-	Query         string                 `json:"query"`
-	Vars          map[string]interface{} `json:"variables"`
-	OperationName string                 `json:"operationName"`
-}
-
-type webSocketRequest struct {
-	ID      string  `json:"id"`
-	Type    string  `json:"type"`
-	Payload request `json:"payload"`
+	Endpoint string          // The endpoint for DLive's API
+	Auth     string          // An authorization token to send along with requests
+	Feeds    map[string]Feed // Any active websocket streams the client is consuming
 }
 
 // GlobalInformation fetches language information about DLive
@@ -50,7 +27,7 @@ func (c *Client) GlobalInformation() (interface{}, error) {
 		Query: GlobalInformationQuery(),
 		Vars:  map[string]interface{}{},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 // Query Methods
@@ -63,7 +40,7 @@ func (c *Client) LivestreamPage(displayName string, add bool, isLoggedIn bool) (
 			"isLoggedIn":  isLoggedIn,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) LivestreamChatRoomInfo(displayName string, isLoggedIn bool, limit string) (interface{}, error) {
@@ -75,7 +52,7 @@ func (c *Client) LivestreamChatRoomInfo(displayName string, isLoggedIn bool, lim
 			"limit":       limit,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) LivestreamProfileVideos(displayName string, first string) (interface{}, error) {
@@ -86,7 +63,7 @@ func (c *Client) LivestreamProfileVideos(displayName string, first string) (inte
 			"first":       first,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) LivestreamProfileReplays(displayName string, first string) (interface{}, error) {
@@ -97,7 +74,7 @@ func (c *Client) LivestreamProfileReplays(displayName string, first string) (int
 			"first":       first,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) LivestreamProfileFollowers(displayName string, sortBy string, first string, isLoggedIn bool) (interface{}, error) {
@@ -110,7 +87,7 @@ func (c *Client) LivestreamProfileFollowers(displayName string, sortBy string, f
 			"isLoggedIn":  false,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) LivestreamProfileFollowing(displayName string, sortBy string, first string, isLoggedIn bool) (interface{}, error) {
@@ -123,7 +100,7 @@ func (c *Client) LivestreamProfileFollowing(displayName string, sortBy string, f
 			"isLoggedIn":  false,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) LivestreamProfileWallet(displayName string, first string, isLoggedIn bool) (interface{}, error) {
@@ -135,7 +112,7 @@ func (c *Client) LivestreamProfileWallet(displayName string, first string, isLog
 			"isLoggedIn":  false,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) TopContributors(displayName string, rule string, first string, queryStream bool) (interface{}, error) {
@@ -148,7 +125,7 @@ func (c *Client) TopContributors(displayName string, rule string, first string, 
 			"queryStream": false,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) StreamChatBannedUsers(displayName string, first string, search string) (interface{}, error) {
@@ -160,7 +137,7 @@ func (c *Client) StreamChatBannedUsers(displayName string, first string, search 
 			"search":      search,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) StreamChatModerators(displayName string, first string, search string) (interface{}, error) {
@@ -172,7 +149,7 @@ func (c *Client) StreamChatModerators(displayName string, first string, search s
 			"search":      search,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 func (c *Client) AllowedActions(username string, streamer string) (interface{}, error) {
@@ -183,13 +160,26 @@ func (c *Client) AllowedActions(username string, streamer string) (interface{}, 
 			"streamer": streamer,
 		},
 	}
-	return c.run(req)
+	return c.sendQuery(req)
 }
 
 // Mutation Methods
+func (c *Client) SendStreamChat(input StreamChatInput) error {
+	req := request{
+		Query: SendStreamChatMessageMutation(),
+		Vars: map[string]interface{}{
+			"input": input,
+		},
+	}
+	return c.sendMutation(req)
+}
 
 // Subscription Methods
-func (c *Client) StreamMessageFeed(streamer string, messages chan []byte) error {
+func (c *Client) StreamMessageFeed(streamer string, messages chan<- []byte) (string, error) {
+	if feed, ok := c.Feeds["StreamMessageFeed"]; ok {
+		return feed.Subscribe(messages)
+	}
+
 	req := webSocketRequest{
 		ID:   "1",
 		Type: "start",
@@ -198,20 +188,31 @@ func (c *Client) StreamMessageFeed(streamer string, messages chan []byte) error 
 			Vars: map[string]interface{}{
 				"streamer": streamer,
 			},
-			OperationName: "StreamMessageSubscription",
 		},
 	}
-	return c.connectWebsocket(req, messages)
+	f := Feed{
+		FeedType: "StreamMessageFeed",
+		SetupFunc: c.setupWebsocket,
+	}
+	key, err := f.Subscribe(messages)
+
+	if err != nil {
+		return "", err
+	}
+
+	c.Feeds[f.FeedType] = f
+
+	return key, nil
 }
 
-func (c *Client) run(req request) (interface{}, error) {
+func (c *Client) sendQuery(req request) (interface{}, error) {
 	var body bytes.Buffer
 
 	if err := json.NewEncoder(&body).Encode(req); err != nil {
 		return "", err
 	}
 
-	resp, err := http.Post(c.URL, "application/json", &body)
+	resp, err := http.Post(c.Endpoint, "application/json", &body)
 
 	if err != nil {
 		return "", err
@@ -238,52 +239,137 @@ func (c *Client) run(req request) (interface{}, error) {
 	return data.Data, nil
 }
 
-func (c *Client) connectWebsocket(req webSocketRequest, messages chan []byte) error {
-	go func(req webSocketRequest, messages chan []byte) {
-		conn, _, err := websocket.DefaultDialer.Dial(DefaultURLWebsocket, http.Header{
-			"Sec-WebSocket-Protocol": []string{"graphql-ws"},
-			"Sec-WebSocket-Version": []string{"13"},
-		})
+func (c *Client) sendMutation(req request) error {
+	var body bytes.Buffer
 
-		if err != nil {
-			log.Fatal("Dial:", err)
-			return
-		}
+	if err := json.NewEncoder(&body).Encode(req); err != nil {
+		return err
+	}
 
-		err = conn.WriteJSON(struct {
-			Type    string      `json:"type"`
-			Payload interface{} `json:"payload"`
-		}{
-			Type:    "connection_init",
-			Payload: map[string]interface{}{},
-		})
+	resp, err := http.Post(c.Endpoint, "application/json", &body)
 
-		if err != nil {
-			log.Fatal("Connection Init:", err)
-			return
-		}
+	if err != nil {
+		return err
+	}
 
-		//temp, err := json.Marshal(req)
-		//
-		//log.Fatal(string(temp))
+	defer resp.Body.Close()
 
-		err = conn.WriteJSON(req)
+	var buf bytes.Buffer
 
-		if err != nil {
-			log.Fatal("GraphQL Subscription Start:", err)
-			return
-		}
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
+		return err
+	}
 
-		defer conn.Close()
+	var data response
 
-		for {
-			_, m, err := conn.ReadMessage()
-			if err != nil {
-				log.Fatal("Read:", err)
-				return
-			}
-			messages <- m
-		}
-	}(req, messages)
+	if err := json.NewDecoder(&buf).Decode(&data); err != nil {
+		return err
+	}
+
+	if len(data.Errors) > 0 {
+		return data.Errors[0]
+	}
+
 	return nil
 }
+
+func (c *Client) setupWebsocket(messages chan<- []byte, quit <-chan bool, req webSocketRequest) {
+	conn, _, err := websocket.DefaultDialer.Dial(DefaultURLWebsocket, http.Header{
+		"Sec-WebSocket-Protocol": []string{"graphql-ws"},
+		"Sec-WebSocket-Version":  []string{"13"},
+	})
+
+	if err != nil {
+		log.Println("Dial:", err)
+		return
+	}
+
+	err = conn.WriteJSON(struct {
+		Type    string      `json:"type"`
+		Payload interface{} `json:"payload"`
+	}{
+		Type:    "connection_init",
+		Payload: map[string]interface{}{},
+	})
+
+	if err != nil {
+		log.Println("Connection Init:", err)
+		return
+	}
+
+	err = conn.WriteJSON(req)
+
+	if err != nil {
+		log.Println("GraphQL Subscription Start:", err)
+		return
+	}
+
+	defer conn.Close()
+	defer close(messages)
+
+	for {
+		time.Sleep(1000 * time.Millisecond)
+		_, m, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("Read Error:", err)
+			return
+		}
+		select {
+		case <-quit:
+			log.Println("Termination signal received, ending goroutine...")
+			return
+		case messages <- m:
+			log.Println("Writing stream to feed...")
+		default:
+			log.Println("Waiting on message...")
+		}
+	}
+}
+
+//func (c *Client) connectWebsocket(req webSocketRequest, messages chan<- []byte) error {
+//	go func(req webSocketRequest, messages chan<- []byte) {
+//		conn, _, err := websocket.DefaultDialer.Dial(DefaultURLWebsocket, http.Header{
+//			"Sec-WebSocket-Protocol": []string{"graphql-ws"},
+//			"Sec-WebSocket-Version":  []string{"13"},
+//		})
+//
+//		if err != nil {
+//			log.Fatal("Dial:", err)
+//			return
+//		}
+//
+//		err = conn.WriteJSON(struct {
+//			Type    string      `json:"type"`
+//			Payload interface{} `json:"payload"`
+//		}{
+//			Type:    "connection_init",
+//			Payload: map[string]interface{}{},
+//		})
+//
+//		if err != nil {
+//			log.Fatal("Connection Init:", err)
+//			return
+//		}
+//
+//		err = conn.WriteJSON(req)
+//
+//		if err != nil {
+//			log.Fatal("GraphQL Subscription Start:", err)
+//			return
+//		}
+//
+//		defer conn.Close()
+//		defer close(messages)
+//
+//		for {
+//			_, m, err := conn.ReadMessage()
+//			if err != nil {
+//				log.Fatal("Read:", err)
+//				return
+//			}
+//			messages <- m
+//		}
+//	}(req, messages)
+//
+//	return nil
+//}
