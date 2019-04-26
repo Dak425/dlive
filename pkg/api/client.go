@@ -191,16 +191,13 @@ func (c *Client) StreamMessageFeed(streamer string, messages chan<- []byte) (str
 		},
 	}
 	f := Feed{
-		FeedType: "StreamMessageFeed",
-		SetupFunc: c.setupWebsocket,
+		Request: req,
 	}
 	key, err := f.Subscribe(messages)
 
 	if err != nil {
 		return "", err
 	}
-
-	c.Feeds[f.FeedType] = f
 
 	return key, nil
 }
@@ -308,7 +305,6 @@ func (c *Client) setupWebsocket(messages chan<- []byte, quit <-chan bool, req we
 	defer close(messages)
 
 	for {
-		time.Sleep(1000 * time.Millisecond)
 		_, m, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("Read Error:", err)
@@ -322,54 +318,7 @@ func (c *Client) setupWebsocket(messages chan<- []byte, quit <-chan bool, req we
 			log.Println("Writing stream to feed...")
 		default:
 			log.Println("Waiting on message...")
+			time.Sleep(1000 * time.Millisecond)
 		}
 	}
 }
-
-//func (c *Client) connectWebsocket(req webSocketRequest, messages chan<- []byte) error {
-//	go func(req webSocketRequest, messages chan<- []byte) {
-//		conn, _, err := websocket.DefaultDialer.Dial(DefaultURLWebsocket, http.Header{
-//			"Sec-WebSocket-Protocol": []string{"graphql-ws"},
-//			"Sec-WebSocket-Version":  []string{"13"},
-//		})
-//
-//		if err != nil {
-//			log.Fatal("Dial:", err)
-//			return
-//		}
-//
-//		err = conn.WriteJSON(struct {
-//			Type    string      `json:"type"`
-//			Payload interface{} `json:"payload"`
-//		}{
-//			Type:    "connection_init",
-//			Payload: map[string]interface{}{},
-//		})
-//
-//		if err != nil {
-//			log.Fatal("Connection Init:", err)
-//			return
-//		}
-//
-//		err = conn.WriteJSON(req)
-//
-//		if err != nil {
-//			log.Fatal("GraphQL Subscription Start:", err)
-//			return
-//		}
-//
-//		defer conn.Close()
-//		defer close(messages)
-//
-//		for {
-//			_, m, err := conn.ReadMessage()
-//			if err != nil {
-//				log.Fatal("Read:", err)
-//				return
-//			}
-//			messages <- m
-//		}
-//	}(req, messages)
-//
-//	return nil
-//}
