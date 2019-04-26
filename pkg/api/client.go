@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"time"
 )
 
 // DefaultURL is the url used by a API client if none is given
@@ -168,19 +167,23 @@ func (c *Client) SendStreamChat(input StreamChatInput) error {
 	req := request{
 		Query: SendStreamChatMessageMutation(),
 		Vars: map[string]interface{}{
-			"input": input,
+			"stream": input,
 		},
 	}
 	return c.sendMutation(req)
 }
 
 // Subscription Methods
-func (c *Client) StreamMessageFeed(streamer string, messages chan<- []byte) (string, error) {
+func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
 	if feed, ok := c.Feeds["StreamMessageFeed"]; ok {
-		return feed.Subscribe(messages)
+		return feed.Subscribe()
 	}
 
-	req := webSocketRequest{
+	f := Feed{
+		subscriptions: make(map[string]chan<- []byte),
+	}
+
+	r := webSocketRequest{
 		ID:   "1",
 		Type: "start",
 		Payload: request{
@@ -190,16 +193,21 @@ func (c *Client) StreamMessageFeed(streamer string, messages chan<- []byte) (str
 			},
 		},
 	}
-	f := Feed{
-		Request: req,
-	}
-	key, err := f.Subscribe(messages)
+	err := f.Start(r, c.setupWebsocket)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return key, nil
+	c.Feeds["StreamMessageFeed"] = f
+
+	s, err := f.Subscribe()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
 func (c *Client) sendQuery(req request) (interface{}, error) {
@@ -270,7 +278,7 @@ func (c *Client) sendMutation(req request) error {
 	return nil
 }
 
-func (c *Client) setupWebsocket(messages chan<- []byte, quit <-chan bool, req webSocketRequest) {
+func (c *Client) setupWebsocket(req webSocketRequest) (*websocket.Conn, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(DefaultURLWebsocket, http.Header{
 		"Sec-WebSocket-Protocol": []string{"graphql-ws"},
 		"Sec-WebSocket-Version":  []string{"13"},
@@ -278,7 +286,7 @@ func (c *Client) setupWebsocket(messages chan<- []byte, quit <-chan bool, req we
 
 	if err != nil {
 		log.Println("Dial:", err)
-		return
+		return nil, err
 	}
 
 	err = conn.WriteJSON(struct {
@@ -291,34 +299,15 @@ func (c *Client) setupWebsocket(messages chan<- []byte, quit <-chan bool, req we
 
 	if err != nil {
 		log.Println("Connection Init:", err)
-		return
+		return nil, err
 	}
 
 	err = conn.WriteJSON(req)
 
 	if err != nil {
 		log.Println("GraphQL Subscription Start:", err)
-		return
+		return nil, err
 	}
 
-	defer conn.Close()
-	defer close(messages)
-
-	for {
-		_, m, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Read Error:", err)
-			return
-		}
-		select {
-		case <-quit:
-			log.Println("Termination signal received, ending goroutine...")
-			return
-		case messages <- m:
-			log.Println("Writing stream to feed...")
-		default:
-			log.Println("Waiting on message...")
-			time.Sleep(1000 * time.Millisecond)
-		}
-	}
+	return conn, nil
 }

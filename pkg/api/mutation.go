@@ -77,8 +77,8 @@ func UnfollowUserMutation() string {
 
 // StreamDonateMutation returns the graphql mutation for donating LINO to a streamer
 func StreamDonateMutation() string {
-	return `mutation StreamDonate($input: DonateInput!) {
-		donate(input: $input) {
+	return `mutation StreamDonate($stream: DonateInput!) {
+		donate(stream: $stream) {
 		  id
 		  recentCount
 		  expireDuration
@@ -95,8 +95,8 @@ func StreamDonateMutation() string {
 
 // SendStreamChatMessageMutation returns the graphql mutation for sending a message to a streamer's chat
 func SendStreamChatMessageMutation() string {
-	return `mutation SendStreamChatMessage($input: SendStreamchatMessageInput!) {
-		sendStreamchatMessage(input: $input) {
+	return `mutation SendStreamChatMessage($stream: SendStreamchatMessageInput!) {
+		sendStreamchatMessage(stream: $stream) {
 		  err {
 			code
 			__typename
@@ -268,8 +268,8 @@ func GenerateStreamKeyMutation() string {
 
 // EmoteSaveMutation returns the graphql mutation for saving a sticker emote for the logged in user
 func EmoteSaveMutation() string {
-	return `mutation EmoteSave($input: SaveEmoteInput!) {
-  saveEmote(input: $input) {
+	return `mutation EmoteSave($stream: SaveEmoteInput!) {
+  saveEmote(stream: $stream) {
     emote {
       name
       username
@@ -292,8 +292,8 @@ func EmoteSaveMutation() string {
 
 // EmoteDeleteMutation returns the graphql mutation for removing a sticker from the list of saved stickers for the logged in user
 func EmoteDeleteMutation() string {
-	return `mutation EmoteDelete($input: DeleteEmoteInput!) {
-  deleteEmote(input: $input) {
+	return `mutation EmoteDelete($stream: DeleteEmoteInput!) {
+  deleteEmote(stream: $stream) {
     err {
       code
       message

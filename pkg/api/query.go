@@ -1295,7 +1295,7 @@ func TopContributorsQuery() string {
 // HomePageLivestreamQuery gives the graphql query to get data about the live streams that would be shown on the homepage
 func HomePageLivestreamQuery() string {
 	return `query HomePageLivestream($first: Int, $after: String, $languageID: Int, $categoryID: Int, $showNSFW: Boolean, $userLanguageCode: String) {
-		livestreams(input: {first: $first, after: $after, languageID: $languageID, categoryID: $categoryID, showNSFW: $showNSFW, order: TRENDING, userLanguageCode: $userLanguageCode}) {
+		livestreams(stream: {first: $first, after: $after, languageID: $languageID, categoryID: $categoryID, showNSFW: $showNSFW, order: TRENDING, userLanguageCode: $userLanguageCode}) {
 			...VCategoryLivestreamFrag
 			__typename
 		}
@@ -1389,7 +1389,7 @@ func HomePageLeaderboardQuery() string {
 // HomePageCategoriesQuery gives the graphql query to get data about the available stream categories
 func HomePageCategoriesQuery() string {
 	return `query HomePageCategories($first: Int, $after: String, $languageID: Int) {
-		categories(input: {first: $first, after: $after, languageID: $languageID}) {
+		categories(stream: {first: $first, after: $after, languageID: $languageID}) {
 			...HomeCategoriesFrag
 			__typename
 		}
