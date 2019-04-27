@@ -3,6 +3,8 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
 	"log"
@@ -18,6 +20,18 @@ type Client struct {
 	Endpoint string          // The endpoint for DLive's API
 	Auth     string          // An authorization token to send along with requests
 	Feeds    map[string]Feed // Any active websocket streams the client is consuming
+}
+
+func (c *Client) Feed(key string) (*Feed, error) {
+	if f, ok := c.Feeds[key]; ok {
+		return &f, nil
+	} else {
+		return nil, errors.New(fmt.Sprintf("no active feed found with key (%s)", key))
+	}
+}
+
+func (c *Client) FeedCount() int {
+	return len(c.Feeds)
 }
 
 // GlobalInformation fetches language information about DLive
@@ -175,7 +189,9 @@ func (c *Client) SendStreamChat(input StreamChatInput) error {
 
 // Subscription Methods
 func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
-	if feed, ok := c.Feeds["StreamMessageFeed:" + streamer]; ok {
+	k := "StreamMessageFeed:" + streamer
+
+	if feed, ok := c.Feeds[k]; ok {
 		return feed.Subscribe()
 	}
 
