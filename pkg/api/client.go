@@ -215,7 +215,7 @@ func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
 		return nil, err
 	}
 
-	c.Feeds["StreamMessageFeed"] = f
+	c.Feeds[k] = f
 
 	s, err := f.Subscribe()
 

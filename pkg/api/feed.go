@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
@@ -9,6 +10,11 @@ import (
 )
 
 type WebsocketFunc func(request webSocketRequest) (*websocket.Conn, error)
+
+type Response struct {
+	MessageType string                 `json:"type"`
+	Payload     map[string]interface{} `json:"payload"`
+}
 
 type Subscription struct {
 	feed     *Feed
@@ -159,6 +165,14 @@ func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 			if err != nil {
 				log.Println("websocket read: ", err)
 				return
+			}
+
+			var message Response
+
+			err = json.Unmarshal(m, &message)
+
+			if message.MessageType == "connection_ack" || message.MessageType == "ka" {
+				continue
 			}
 
 			select {
