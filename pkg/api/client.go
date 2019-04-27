@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
 // DefaultURL is the url used by a API client if none is given

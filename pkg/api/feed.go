@@ -3,10 +3,11 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"github.com/gofrs/uuid"
-	"github.com/gorilla/websocket"
 	"log"
 	"time"
+
+	"github.com/gofrs/uuid"
+	"github.com/gorilla/websocket"
 )
 
 const connectionAckMessage = "connection_ack"
