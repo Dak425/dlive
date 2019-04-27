@@ -175,7 +175,7 @@ func (c *Client) SendStreamChat(input StreamChatInput) error {
 
 // Subscription Methods
 func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
-	if feed, ok := c.Feeds["StreamMessageFeed"]; ok {
+	if feed, ok := c.Feeds["StreamMessageFeed:" + streamer]; ok {
 		return feed.Subscribe()
 	}
 

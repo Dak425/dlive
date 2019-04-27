@@ -11,13 +11,17 @@ import (
 type WebsocketFunc func(request webSocketRequest) (*websocket.Conn, error)
 
 type Subscription struct {
+	feed     *Feed
 	key      string
 	Messages <-chan []byte
 }
 
+func (s Subscription) Close() error {
+	return s.feed.Unsubscribe(s)
+}
+
 type Feed struct {
 	quit          chan<- bool              // The channel used to terminate the goroutine writing to the stream channel
-	stream        <-chan []byte            // The channel used to read data from goroutine that is streaming data from a remote source
 	subscriptions map[string]chan<- []byte // A group of channels interested in this websocket connection's Feed
 }
 
@@ -26,6 +30,7 @@ type Feed struct {
 // Returns an error if Feed has no output channels
 func (f *Feed) Publish(p []byte) (int, error) {
 	if len(p) == 0 {
+		log.Println("publish -- payload has 0 len")
 		return 0, nil
 	}
 
@@ -63,6 +68,7 @@ func (f *Feed) Subscribe() (*Subscription, error) {
 	f.subscriptions[id.String()] = c
 
 	s = Subscription{
+		feed:     f,
 		key:      id.String(),
 		Messages: c,
 	}
@@ -94,7 +100,6 @@ func (f *Feed) Close() error {
 
 	// Unset websocket channels
 	f.quit = nil
-	f.stream = nil
 
 	// Close any existing output channels
 	for k, v := range f.subscriptions {
@@ -113,7 +118,29 @@ func (f *Feed) Start(socketRequest webSocketRequest, websocketFunc WebsocketFunc
 		return err
 	}
 
-	go f.Watch(conn)
+	q, s := f.Consume(conn)
+	sq := make(chan bool)
+
+	f.quit = sq
+
+	go func(feed *Feed, quitFeed <-chan bool, quitConsume chan<- bool, streamConsume <-chan []byte) {
+		for {
+			select {
+			case <-quitFeed:
+				log.Println("termination signal received, terminating consumer...")
+				quitConsume <- true
+				close(quitConsume)
+				return
+			case m := <-streamConsume:
+				if _, err := feed.Publish(m); err != nil {
+					log.Println("error when publishing stream to subscribers: ", err)
+				}
+			default:
+				log.Println("waiting on message from socket...")
+				time.Sleep(time.Second)
+			}
+		}
+	}(f, sq, q, s)
 
 	return nil
 }
@@ -128,7 +155,6 @@ func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 
 		for {
 			_, m, err := conn.ReadMessage()
-			log.Println(string(m))
 
 			if err != nil {
 				log.Println("websocket read: ", err)
@@ -137,49 +163,13 @@ func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 
 			select {
 			case <-quit:
-				log.Println("Termination signal received, ending goroutine...")
+				log.Println("Termination signal received, closing websocket and channel...")
 				return
 			case stream <- m:
 				log.Println("Writing stream to feed...")
-			default:
-				log.Println("Waiting on message...")
-				time.Sleep(time.Second)
 			}
 		}
 	}(conn, q, s)
 
 	return q, s
-}
-
-func (f *Feed) Watch(conn *websocket.Conn) {
-	f.quit = make(chan bool)
-	f.stream = make(chan []byte)
-
-	q := make(chan bool)
-	s := make(chan []byte)
-
-	f.quit = q
-	f.stream = s
-
-	go func(quit <-chan bool, stream chan<- []byte, conn2 *websocket.Conn) {
-		cq, cs:= f.Consume(conn2)
-
-		for {
-			select {
-			case <-quit:
-				log.Println("feed watcher terminating, sending termination to websocket consumer...")
-				cq <- true
-				close(cq)
-				close(stream)
-			case m := <- cs:
-				log.Println("sending data from consumer to feed")
-				if _, err := f.Publish(m); err != nil {
-					log.Println("error when publishing stream to subscribers", err)
-				}
-			default:
-				log.Println("waiting on consumer data...")
-				time.Sleep(time.Second)
-			}
-		}
-	}(q, s, conn)
 }
