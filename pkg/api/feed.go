@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+const connectionAckMessage = "connection_ack"
+const connectionKeepAliveMessage = "ka"
+
 type WebsocketFunc func(request webSocketRequest) (*websocket.Conn, error)
 
 type Response struct {
@@ -171,7 +174,7 @@ func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 
 			err = json.Unmarshal(m, &message)
 
-			if message.MessageType == "connection_ack" || message.MessageType == "ka" {
+			if message.MessageType == connectionAckMessage || message.MessageType == connectionKeepAliveMessage {
 				continue
 			}
 
