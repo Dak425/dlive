@@ -12,23 +12,28 @@ import (
 const connectionAckMessage = "connection_ack"
 const connectionKeepAliveMessage = "ka"
 
+// WebsocketFunc is the function used to setup the websocket used by a Feed
 type WebsocketFunc func(request webSocketRequest) (*websocket.Conn, error)
 
+// Response represents a response from DLive's API
 type Response struct {
-	MessageType string                 `json:"type"`
-	Payload     map[string]interface{} `json:"payload"`
+	MessageType string                 `json:"type"`    // The type of message sent from the API
+	Payload     map[string]interface{} `json:"payload"` // The contents of the response body
 }
 
 type Subscription struct {
-	feed     *Feed
-	key      string
-	Messages <-chan []byte
+	feed     *Feed         // The feed this subscription belongs to
+	key      string        // The unique ID for this subscription for its feed
+	Messages <-chan []byte // Channel that all new response are written to
 }
 
+// Close removes this subscription from the feed
 func (s Subscription) Close() error {
 	return s.feed.Unsubscribe(s)
 }
 
+// Feed is a real-time data stream using a websocket
+// When a feed receives data from its websocket, its writes that data to all its subscribers
 type Feed struct {
 	quit          chan<- bool              // The channel used to terminate the goroutine writing to the stream channel
 	subscriptions map[string]chan<- []byte // A group of channels interested in this websocket connection's Feed
@@ -63,6 +68,7 @@ func (f *Feed) Publish(p []byte) (int, error) {
 	return len(f.subscriptions) * len(p), nil
 }
 
+// Subscribe creates a new Subscription for the feed
 func (f *Feed) Subscribe() (*Subscription, error) {
 	var s Subscription
 
@@ -85,6 +91,7 @@ func (f *Feed) Subscribe() (*Subscription, error) {
 	return &s, nil
 }
 
+// Unsubscribe closes the subscription's channel and removes it from its map of subscribers
 func (f *Feed) Unsubscribe(subscription Subscription) error {
 	if c, ok := f.subscriptions[subscription.key]; ok {
 		close(c)
@@ -100,6 +107,7 @@ func (f *Feed) Unsubscribe(subscription Subscription) error {
 	return nil
 }
 
+// Close sends a termination signal to consumer go routine, closes the termination signal channel, and closes all subscriptions
 func (f *Feed) Close() error {
 	// Send termination signal to goroutine
 	f.quit <- true
@@ -119,7 +127,13 @@ func (f *Feed) Close() error {
 	return nil
 }
 
+// Start uses the provided reqeust and websocketFunc to start a GraphQL websocket connection
+// Returns an error if the feed already been started
 func (f *Feed) Start(socketRequest webSocketRequest, websocketFunc WebsocketFunc) error {
+	if f.quit != nil {
+		return errors.New("feed has already been started")
+	}
+
 	// Setup websocket using provided func
 	conn, err := websocketFunc(socketRequest)
 
@@ -154,6 +168,8 @@ func (f *Feed) Start(socketRequest webSocketRequest, websocketFunc WebsocketFunc
 	return nil
 }
 
+// Consume uses the provided websocket to continuously read data from the socket and write it to the downstream channel
+// Go routine will return when a termination signal is sent via the quit channel
 func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 	q := make(chan bool)
 	s := make(chan []byte)
