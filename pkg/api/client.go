@@ -36,10 +36,9 @@ func (c *Client) FeedCount() int {
 }
 
 // GlobalInformation fetches language information about DLive
-func (c *Client) GlobalInformation() (interface{}, error) {
+func (c *Client) GlobalInformation() (Response, error) {
 	req := request{
 		Query: GlobalInformationQuery(),
-		Vars:  map[string]interface{}{},
 	}
 	return c.sendQuery(req)
 }

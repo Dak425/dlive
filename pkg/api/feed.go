@@ -29,8 +29,8 @@ type Subscription struct {
 }
 
 // Close removes this subscription from the feed
-func (s Subscription) Close() error {
-	return s.feed.Unsubscribe(s)
+func (s Subscription) Close() {
+	s.feed.Unsubscribe(s)
 }
 
 // Feed is a real-time data stream using a websocket
@@ -97,7 +97,7 @@ func (f *Feed) Subscribe() (*Subscription, error) {
 }
 
 // Unsubscribe closes the subscription's channel and removes it from its map of subscribers
-func (f *Feed) Unsubscribe(subscription Subscription) error {
+func (f *Feed) Unsubscribe(subscription Subscription) {
 	if c, ok := f.subscriptions[subscription.key]; ok {
 		close(c)
 		delete(f.subscriptions, subscription.key)
@@ -106,8 +106,6 @@ func (f *Feed) Unsubscribe(subscription Subscription) error {
 			f.Close()
 		}
 	}
-
-	return nil
 }
 
 // Close sends a termination signal to consumer go routine, closes the termination signal channel, and closes all subscriptions
