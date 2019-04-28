@@ -36,23 +36,18 @@ func (c *Client) FeedCount() int {
 }
 
 // GlobalInformation fetches language information about DLive
-func (c *Client) GlobalInformation() (interface{}, error) {
+func (c *Client) GlobalInformation() (Response, error) {
 	req := request{
 		Query: GlobalInformationQuery(),
-		Vars:  map[string]interface{}{},
 	}
 	return c.sendQuery(req)
 }
 
 // Query Methods
-func (c *Client) LivestreamPage(displayName string, add bool, isLoggedIn bool) (interface{}, error) {
+func (c *Client) LivestreamPage(args LivestreamPageArgs) (interface{}, error) {
 	req := request{
 		Query: LivestreamPageQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"add":         add,
-			"isLoggedIn":  isLoggedIn,
-		},
+		Vars:  args,
 	}
 	return c.sendQuery(req)
 }
@@ -117,14 +112,10 @@ func (c *Client) LivestreamProfileFollowing(displayName string, sortBy string, f
 	return c.sendQuery(req)
 }
 
-func (c *Client) LivestreamProfileWallet(displayName string, first string, isLoggedIn bool) (interface{}, error) {
+func (c *Client) LivestreamProfileWallet(args LivestreamProfileWalletArgs) (Response, error) {
 	req := request{
 		Query: LivestreamProfileWalletQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"first":       first,
-			"isLoggedIn":  false,
-		},
+		Vars:  args,
 	}
 	return c.sendQuery(req)
 }
@@ -192,13 +183,17 @@ func (c *Client) SendStreamChat(input StreamChatInput) error {
 func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
 	k := "StreamMessageFeed:" + streamer
 
-	if feed, ok := c.Feeds[k]; ok {
-		return feed.Subscribe()
+	if f, ok := c.Feeds[k]; ok {
+		if f.Active() {
+			return f.Subscribe()
+		}
+	} else {
+		c.Feeds[k] = Feed{
+			subscriptions: make(map[string]chan<- []byte),
+		}
 	}
 
-	f := Feed{
-		subscriptions: make(map[string]chan<- []byte),
-	}
+	f := c.Feeds[k]
 
 	r := webSocketRequest{
 		ID:   "1",
@@ -210,13 +205,12 @@ func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
 			},
 		},
 	}
+
 	err := f.Start(r, c.setupWebsocket)
 
 	if err != nil {
 		return nil, err
 	}
-
-	c.Feeds[k] = f
 
 	s, err := f.Subscribe()
 
@@ -227,17 +221,18 @@ func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
 	return s, nil
 }
 
-func (c *Client) sendQuery(req request) (interface{}, error) {
+func (c *Client) sendQuery(req request) (Response, error) {
 	var body bytes.Buffer
+	var data Response
 
 	if err := json.NewEncoder(&body).Encode(req); err != nil {
-		return "", err
+		return data, err
 	}
 
 	resp, err := http.Post(c.Endpoint, "application/json", &body)
 
 	if err != nil {
-		return "", err
+		return data, err
 	}
 
 	defer resp.Body.Close()
@@ -245,20 +240,18 @@ func (c *Client) sendQuery(req request) (interface{}, error) {
 	var buf bytes.Buffer
 
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
-		return "", err
+		return data, err
 	}
 
-	var data response
-
 	if err := json.NewDecoder(&buf).Decode(&data); err != nil {
-		return "", err
+		return data, err
 	}
 
 	if len(data.Errors) > 0 {
-		return "", data.Errors[0]
+		return data, data.Errors[0]
 	}
 
-	return data.Data, nil
+	return data, nil
 }
 
 func (c *Client) sendMutation(req request) error {
@@ -282,7 +275,7 @@ func (c *Client) sendMutation(req request) error {
 		return err
 	}
 
-	var data response
+	var data Response
 
 	if err := json.NewDecoder(&buf).Decode(&data); err != nil {
 		return err

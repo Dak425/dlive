@@ -6,6 +6,7 @@ const ContributionSummaryAll = "ALL_TIME"
 
 // Sorting Contants
 const SortAlpha = "AZ"
+const SortTrending = "Trending"
 
 // GlobalInformationQuery returns the graphql query string for retrieving global information about Dlive
 func GlobalInformationQuery() string {
@@ -70,6 +71,10 @@ func MeGlobalQuery() string {
 		__typename
 	}
 	`
+}
+
+type MeDashboardArgs struct {
+	IsLoggedIn bool `json:"isLoggedIn"`
 }
 
 // MeDashboardQuery gives the graphql query to obtain information about the authenticated user's dashboard (settings, stats, chatroom)
@@ -258,6 +263,10 @@ func MeDashboardQuery() string {
 	`
 }
 
+type MeLivestreamArgs struct {
+	IsLoggedIn bool `json:"isLoggedIn"`
+}
+
 // MeLivestreamQuery provides the graphql query for obtaining data related to the current user's livestream
 func MeLivestreamQuery() string {
 	return `query MeLivestream($isLoggedIn: Boolean!) {
@@ -344,6 +353,11 @@ func MeBalanceQuery() string {
 		__typename
 	}
 	`
+}
+
+type MeSubscribingArgs struct {
+	First int    `json:"first"`
+	After string `json:"after"`
 }
 
 // MeSubscribingQuery returns the graphql query to get the list of users the currently authenticated user is subbed to
@@ -443,6 +457,12 @@ func MePartnerProgressQuery() string {
 		__typename
 	}
 	`
+}
+
+type LivestreamPageArgs struct {
+	DisplayName string `json:"displayname"`
+	Add         bool   `json:"add"`
+	IsLoggedIn  bool   `json:"isLoggedIn"`
 }
 
 // LivestreamPageQuery gives the graphql query for obtaining data about a user's livestream
@@ -608,6 +628,8 @@ func LivestreamPageQuery() string {
 	`
 }
 
+type LivestreamPageRefetchArgs LivestreamPageArgs
+
 // LivestreamPageRefetchQuery gives the graphql query refreshing data about a specific streamer's page
 func LivestreamPageRefetchQuery() string {
 	return `query LivestreamPageRefetch($displayname: String!, $add: Boolean!, $isLoggedIn: Boolean!) {
@@ -698,6 +720,12 @@ func LivestreamPageRefetchQuery() string {
 		__typename
 	}
 	`
+}
+
+type LivestreamChatRoomInfoArgs struct {
+	DisplayName string `json:"displayname"`
+	IsLoggedIn  bool   `json:"isLoggedIn"`
+	Limit       int    `json:"limit"`
 }
 
 // LivestreamChatRoomInfoQuery gives the graphql query to get data related to the chat of a livestream page
@@ -984,6 +1012,10 @@ func LivestreamChatRoomInfoQuery() string {
 	`
 }
 
+type LivestreamLanguagesArgs struct {
+	CategoryID int `json:"categoryID"`
+}
+
 // LivestreamLanguagesQuery returns the graphql query to get data about the available languages to set a stream to
 func LivestreamLanguagesQuery() string {
 	return `query LivestreamsLanguages($categoryID: Int) {
@@ -1000,6 +1032,13 @@ func LivestreamLanguagesQuery() string {
 		__typename
 	}
 	`
+}
+
+type LivestreamProfileVideoArgs struct {
+	DisplayName string `json:"displayname"`
+	SortedBy    string `json:"sortedBy"`
+	First       int    `json:"first"`
+	After       string `json:"after"`
 }
 
 // LivestreamProfileVideoQuery returns the graphql query for getting the videos of a specified streamer
@@ -1041,6 +1080,12 @@ func LivestreamProfileVideoQuery() string {
 	`
 }
 
+type LivestreamProfileReplayArgs struct {
+	DisplayName string `json:"displayname"`
+	First       int    `json:"first"`
+	After       string `json:"after"`
+}
+
 // LivestreamProfileReplayQuery returns the graphql query for getting the replays of a specified streamer
 func LivestreamProfileReplayQuery() string {
 	return `query LivestreamProfileReplay($displayname: String!, $first: Int, $after: String) {
@@ -1080,6 +1125,13 @@ func LivestreamProfileReplayQuery() string {
 	`
 }
 
+type LivestreamProfileWalletArgs struct {
+	DisplayName string `json:"displayname"`
+	First       int    `json:"first"`
+	After       string `json:"after"`
+	IsLoggedIn  bool   `json:"isLoggedIn"`
+}
+
 // LivestreamProfileWalletQuery returns the graphql query for getting balance, earnings, and transactions of a streamer
 func LivestreamProfileWalletQuery() string {
 	return `query LivestreamProfileWallet($displayname: String!, $first: Int, $after: String, $isLoggedIn: Boolean!) {
@@ -1117,6 +1169,14 @@ func LivestreamProfileWalletQuery() string {
 		}
 	}
 	`
+}
+
+type LivestreamProfileFollowersArgs struct {
+	DisplayName string `json:"displayname"`
+	SortedBy    string `json:"sortedBy"`
+	First       int    `json:"first"`
+	After       string `json:"after"`
+	IsLoggedIn  bool   `json:"isLoggedIn"`
 }
 
 // LivestreamProfileFollowersQuery returns the graphql query for getting a streamer's followers
@@ -1169,6 +1229,8 @@ func LivestreamProfileFollowersQuery() string {
 	`
 }
 
+type LivestreamProfileFollowingArgs LivestreamProfileFollowersArgs
+
 // LivestreamProfileFollowingQuery returns the graphql query for getting the users a streamer follows
 func LivestreamProfileFollowingQuery() string {
 	return `query LivestreamProfileFollowing($displayname: String!, $sortedBy: RelationSortOrder, $first: Int, $after: String, $isLoggedIn: Boolean!) {
@@ -1217,6 +1279,14 @@ func LivestreamProfileFollowingQuery() string {
 		__typename
 	}
 	`
+}
+
+type TopContributorsArgs struct {
+	DisplayName string `json:"displayname"`
+	Rule        string `json:"rule"`
+	First       int    `json:"first"`
+	After       string `json:"after"`
+	QueryStream bool   `json:"queryStream"`
 }
 
 // TopContributorsQuery gives the graphql query to get data about users who are the top contributors for a livestream page
@@ -1290,6 +1360,15 @@ func TopContributorsQuery() string {
 		__typename
 	}
 	`
+}
+
+type HomePageLivestreamArgs struct {
+	First            int    `json:"first"`
+	After            string `json:"after"`
+	LanguageID       int    `json:"languageID"`
+	CategoryID       int    `json:"categoryID"`
+	ShowNSFW         bool   `json:"showNSFW"`
+	UserLanguageCode string `json:"user_language_code"`
 }
 
 // HomePageLivestreamQuery gives the graphql query to get data about the live streams that would be shown on the homepage
@@ -1386,6 +1465,12 @@ func HomePageLeaderboardQuery() string {
 	`
 }
 
+type HomePageCategoriesArgs struct {
+	First      int    `json:"first"`
+	After      string `json:"after"`
+	LanguageID int    `json:"languageID"`
+}
+
 // HomePageCategoriesQuery gives the graphql query to get data about the available stream categories
 func HomePageCategoriesQuery() string {
 	return `query HomePageCategories($first: Int, $after: String, $languageID: Int) {
@@ -1417,6 +1502,11 @@ func HomePageCategoriesQuery() string {
 		__typename
 	}
 	`
+}
+
+type HomePageCarouselsArgs struct {
+	Count            int    `json:"count"`
+	UserLanguageCode string `json:"userLanguageCode"`
 }
 
 // HomePageCarouselsQuery returns the graphql query to get data used to populate the home page stream carousels
@@ -1472,6 +1562,12 @@ func HomePageCarouselsQuery() string {
 	`
 }
 
+type BrowsePageSearchCategoriesArgs struct {
+	Text  string `json:"text"`
+	First int    `json:"first"`
+	After string `json:"after"`
+}
+
 // BrowsePageSearchCategoriesQuery returns the graphql query to get all the categories you can filter on while browsing streams
 func BrowsePageSearchCategoriesQuery() string {
 	return `query BrowsePageSearchCategory($text: String!, $first: Int, $after: String) {
@@ -1506,6 +1602,11 @@ func BrowsePageSearchCategoriesQuery() string {
 		__typename
 	}
 	`
+}
+
+type FollowingPageLivestreamsArgs struct {
+	First int    `json:"first"`
+	After string `json:"after"`
 }
 
 // FollowingPageLivestreamsQuery returns the graphql query to get the streamers the currently authenticated user is following
@@ -1560,6 +1661,8 @@ func FollowingPageLivestreamsQuery() string {
 	`
 }
 
+type FollowingPageVideosArgs FollowingPageLivestreamsArgs
+
 // FollowingPageVideosQuery returns the graphql query for getting videos uploaded by users the authenticated user is following
 func FollowingPageVideosQuery() string {
 	return `query FollowingPageVideos($first: Int, $after: String) {
@@ -1605,6 +1708,13 @@ func FollowingPageVideosQuery() string {
 		__typename
 	}
 	`
+}
+
+type SearchPageArgs struct {
+	Text       string `json:"text"`
+	First      int    `json:"first"`
+	After      string `json:"after"`
+	IsLoggedIn bool   `json:"isLoggedIn"`
 }
 
 // SearchPageQuery returns the graphql query for searching streamers, active streams, and videos for a specific term
@@ -1715,6 +1825,13 @@ func SearchPageQuery() string {
 	`
 }
 
+type StreamChatBannedUsersArgs struct {
+	DisplayName string `json:"displayname"`
+	First       int    `json:"first"`
+	After       string `json:"after"`
+	Search      string `json:"search"`
+}
+
 // StreamChatBannedUsersQuery returns the graphql query for getting a list of users banned in a specific streamer's chat
 func StreamChatBannedUsersQuery() string {
 	return `query StreamChatBannedUsers($displayname: String!, $first: Int, $after: String, $search: String) {
@@ -1751,6 +1868,8 @@ func StreamChatBannedUsersQuery() string {
 	`
 }
 
+type StreamChatModeratorsArgs StreamChatBannedUsersArgs
+
 // StreamChatModeratorsQuery returns the graphql query for getting a list of users that are moderators in a specific streamer's chat
 func StreamChatModeratorsQuery() string {
 	return `query StreamChatModerators($displayname: String!, $first: Int, $after: String, $search: String) {
@@ -1785,6 +1904,11 @@ func StreamChatModeratorsQuery() string {
 		__typename
 	}
 	`
+}
+
+type AllowedActionsArgs struct {
+	Username string `json:"username"`
+	Streamer string `json:"streamer"`
 }
 
 // AllowedActionsQuery returns the graphql query for getting a list of actions one user may take upon another on a given streamer's page
