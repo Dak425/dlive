@@ -1,6 +1,6 @@
 package api
 
-type request struct {
+type Request struct {
 	Query string      `json:"query"`
 	Vars  interface{} `json:"variables"`
 }
@@ -10,7 +10,7 @@ type responseError struct {
 }
 
 func (re responseError) Error() string {
-	return "GraphQL API Error: " + re.Message
+	return "DLive API Error: " + re.Message
 }
 
 type Response struct {
@@ -18,8 +18,8 @@ type Response struct {
 	Errors []responseError        `json:"errors"`
 }
 
-type webSocketRequest struct {
+type WebSocketRequest struct {
 	ID      string  `json:"id"`
 	Type    string  `json:"type"`
-	Payload request `json:"payload"`
+	Payload Request `json:"payload"`
 }

@@ -2,22 +2,26 @@ package main
 
 import (
 	"fmt"
-	"github.com/Dak425/dlive/pkg/api"
 	"log"
+
+	"github.com/Dak425/dlive/pkg/api"
 )
 
 func main() {
 	c := api.Client{
-		Endpoint: api.DefaultURL,
-		Feeds:    make(map[string]api.Feed),
+		Endpoint:          api.DefaultURL,
+		WebsocketEndpoint: api.DefaultURLWebsocket,
+		Feeds:             make(map[string]api.Feed),
 	}
 
-	streamer := "dlive-21641280"
+	args := api.StreamMessageFeedArgs{
+		Streamer: "dlive-21641280",
+	}
 
-	s, err := c.StreamMessageFeed(streamer)
+	s, err := c.StreamMessageFeed(args)
 
 	if err != nil {
-		log.Fatalf("unable to subscribe to %s's chat: %s\n", streamer, err)
+		log.Fatalf("unable to subscribe to %s's chat: %s\n", args.Streamer, err)
 	}
 
 	count := 0
@@ -26,7 +30,7 @@ func main() {
 		count++
 		fmt.Println(string(m))
 		if count >= 5 {
-			log.Println("closing subscription...")
+			log.Printf("closing subscription (%s)...\n", s.Key)
 			s.Close()
 		}
 	}
