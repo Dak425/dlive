@@ -154,19 +154,25 @@ func (f *Feed) Start(socketRequest WebSocketRequest, websocketFunc WebsocketFunc
 	f.quit = sq
 
 	go func(feed *Feed, quitFeed <-chan bool, quitConsume chan<- bool, streamConsume <-chan []byte) {
+		defer close(quitConsume)
+
 		for {
 			select {
 			case <-quitFeed:
 				log.Printf("(%s) -- termination signal received, terminating consumer...\n", f)
 				quitConsume <- true
-				close(quitConsume)
 				return
-			case m := <-streamConsume:
+			case m, ok := <-streamConsume:
+				if !ok {
+					log.Printf("%s -- upstream channel has closed, closing feed...\n", feed)
+					feed.Close()
+					return
+				}
 				if _, err := feed.Publish(m); err != nil {
-					log.Printf("(%s) -- error when publishing stream to subscribers: %s\n", f, err)
+					log.Printf("(%s) -- error when publishing stream to subscribers: %s\n", feed, err)
 				}
 			default:
-				log.Printf("(%s) -- waiting on message from socket...\n", f)
+				log.Printf("(%s) -- waiting on message from socket...\n", feed)
 				time.Sleep(time.Second)
 			}
 		}
@@ -181,7 +187,7 @@ func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 	q := make(chan bool)
 	s := make(chan []byte)
 
-	go func(socket *websocket.Conn, quit <-chan bool, stream chan<- []byte) {
+	go func(socket *websocket.Conn, quit <-chan bool, stream chan<- []byte, feed *Feed) {
 		defer conn.Close()
 		defer close(stream)
 
@@ -189,7 +195,7 @@ func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 			_, m, err := conn.ReadMessage()
 
 			if err != nil {
-				log.Println("websocket read: ", err)
+				log.Printf("(%s) -- error reading websocket: %s\n", feed, err)
 				return
 			}
 
@@ -203,13 +209,13 @@ func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 
 			select {
 			case <-quit:
-				log.Printf("(%s) -- termination signal received, closing websocket and channel...\n", f)
+				log.Printf("(%s) -- termination signal received, closing websocket and channel...\n", feed)
 				return
 			case stream <- m:
-				log.Printf("(%s) -- writing stream to feed...\n", f)
+				log.Printf("(%s) -- writing stream to feed...\n", feed)
 			}
 		}
-	}(conn, q, s)
+	}(conn, q, s, f)
 
 	return q, s
 }
