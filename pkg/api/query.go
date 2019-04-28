@@ -1,13 +1,5 @@
 package api
 
-// Contribution Summary Rule Constants
-const ContributionSummaryMonth = "THIS_MONTH"
-const ContributionSummaryAll = "ALL_TIME"
-
-// Sorting Contants
-const SortAlpha = "AZ"
-const SortTrending = "Trending"
-
 // GlobalInformationQuery returns the graphql query string for retrieving global information about Dlive
 func GlobalInformationQuery() string {
 	return `query GlobalInformation {
