@@ -207,7 +207,6 @@ func (c *Client) Send(req Request) (Response, error) {
 	r.Header.Set("content-type", "application/json")
 
 	resp, err := client.Do(r)
-	//resp, err := http.Post(c.Endpoint, "application/json", &body)
 
 	if err != nil {
 		return data, err
