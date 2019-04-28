@@ -1,8 +1,8 @@
 package api
 
 type request struct {
-	Query string                 `json:"query"`
-	Vars  map[string]interface{} `json:"variables"`
+	Query string      `json:"query"`
+	Vars  interface{} `json:"variables"`
 }
 
 type responseError struct {
@@ -13,9 +13,9 @@ func (re responseError) Error() string {
 	return "GraphQL API Error: " + re.Message
 }
 
-type response struct {
-	Data   interface{}
-	Errors []responseError
+type Response struct {
+	Data   map[string]interface{} `json:"data"`
+	Errors []responseError        `json:"errors"`
 }
 
 type webSocketRequest struct {

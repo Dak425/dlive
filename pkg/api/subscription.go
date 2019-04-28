@@ -1,5 +1,9 @@
 package api
 
+type StreamMessageFeedArgs struct {
+	Streamer string `json:"streamer"`
+}
+
 // StreamMessageSubscription gives the graphql query to establish a subscription for a livestream's chat messages
 func StreamMessageSubscription() string {
 	return `subscription StreamMessageSubscription($streamer: String!) {
