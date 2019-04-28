@@ -44,6 +44,13 @@ func (c *Client) GlobalInformation() (Response, error) {
 	return c.Send(req)
 }
 
+func (c *Client) MeBalance() (Response, error) {
+	req := Request{
+		Query: MeBalanceQuery(),
+	}
+	return c.Send(req)
+}
+
 // Query Methods
 func (c *Client) LivestreamPage(args LivestreamPageArgs) (Response, error) {
 	req := Request{
