@@ -1,5 +1,12 @@
 package api
 
+import "net/url"
+
+type LoginWithWalletArgs struct {
+	Payload       string `json:"payload"`
+	SignedPayload string `json:"signed_payload"`
+}
+
 // LoginWithWalletMutation returns the graphql mutation for logging with a LINO wallet account
 func LoginWithWalletMutation() string {
 	return `mutation LoginWithWallet($payload: String!, $signedPayload: String!) {
@@ -45,6 +52,10 @@ func VideoPermLinkMutation() string {
 	  `
 }
 
+type FollowUserArgs struct {
+	Streamer string `json:"streamer"`
+}
+
 // FollowUserMutation returns the graphql mutation for becoming a follower of a streamer
 func FollowUserMutation() string {
 	return `mutation FollowUser($streamer: String!) {
@@ -59,6 +70,8 @@ func FollowUserMutation() string {
 	  }
 	  `
 }
+
+type UnfollowUserArgs FollowUserArgs
 
 // UnfollowUserMutation returns the graphql mutation for unfollowing a streamer
 func UnfollowUserMutation() string {
@@ -75,10 +88,20 @@ func UnfollowUserMutation() string {
 	  `
 }
 
+type DonateInput struct {
+	Count    int    `json:"count"`
+	PermLink string `json:"permlink"`
+	Type     string `json:"type"`
+}
+
+type StreamDonateArgs struct {
+	Input DonateInput `json:"input"`
+}
+
 // StreamDonateMutation returns the graphql mutation for donating LINO to a streamer
 func StreamDonateMutation() string {
-	return `mutation StreamDonate($stream: DonateInput!) {
-		donate(stream: $stream) {
+	return `mutation StreamDonate($input: DonateInput!) {
+		donate(input: $input) {
 		  id
 		  recentCount
 		  expireDuration
@@ -93,10 +116,21 @@ func StreamDonateMutation() string {
 	  `
 }
 
+type SendStreamChatMessageInput struct {
+	Message     string `json:"message"`
+	RoomRole    string `json:"roomRole"`
+	Streamer    string `json:"streamer"`
+	Subscribing bool   `json:"subscribing"`
+}
+
+type SendStreamChatMessageArgs struct {
+	Input SendStreamChatMessageInput `json:"input"`
+}
+
 // SendStreamChatMessageMutation returns the graphql mutation for sending a message to a streamer's chat
 func SendStreamChatMessageMutation() string {
-	return `mutation SendStreamChatMessage($stream: SendStreamchatMessageInput!) {
-		sendStreamchatMessage(stream: $stream) {
+	return `mutation SendStreamChatMessage($input: SendStreamchatMessageInput!) {
+		sendStreamchatMessage(input: $input) {
 		  err {
 			code
 			__typename
@@ -132,6 +166,10 @@ func SendStreamChatMessageMutation() string {
 	  `
 }
 
+type SetAllowStickerArgs struct {
+	Allow bool `json:"allow"`
+}
+
 // SetAllowStickerMutation returns the graphql mutation for enabling or disabling stickers in a streamer's chat
 func SetAllowStickerMutation() string {
 	return `mutation SetAllowSticker($allow: Boolean!) {
@@ -147,6 +185,10 @@ func SetAllowStickerMutation() string {
 	  `
 }
 
+type SetChatIntervalArgs struct {
+	Seconds int `json:"seconds"`
+}
+
 // SetChatIntervalMutation returns the graphql mutation for setting the how often viewers can send messages to a streamer's chat
 func SetChatIntervalMutation() string {
 	return `mutation SetChatInterval($seconds: Int!) {
@@ -159,6 +201,11 @@ func SetChatIntervalMutation() string {
 		}
 	  }
 	  `
+}
+
+type DeleteChatArgs struct {
+	Streamer string `json:"streamer"`
+	ID       string `json:"id"`
 }
 
 // DeleteChatMutation returns the graphql mutation for deleting a message from a streamer's chat
@@ -176,6 +223,10 @@ func DeleteChatMutation() string {
 	  `
 }
 
+type AddModeratorArgs struct {
+	Username string `json:"username"`
+}
+
 // AddModeratorMutation returns the graphql mutation for setting a user in a streamer's chat as a moderator
 func AddModeratorMutation() string {
 	return `mutation AddModerator($username: String!) {
@@ -190,6 +241,8 @@ func AddModeratorMutation() string {
 	  `
 }
 
+type RemoveModeratorArgs AddModeratorArgs
+
 // RemoveModeratorMutation returns the graphql mutation for removing a user as a moderator in the given streamer's chat
 func RemoveModeratorMutation() string {
 	return `mutation RemoveModerator($username: String!) {
@@ -203,6 +256,11 @@ func RemoveModeratorMutation() string {
 		}
 	  }
 	  `
+}
+
+type UnbanStreamChatUserArgs struct {
+	Streamer string `json:"streamer"`
+	Username string `json:"username"`
 }
 
 // UnbanStreamChatUserMutation returns the graphql mutation for unbanning a user in a streamer's chat
@@ -220,6 +278,8 @@ func UnbanStreamChatUserMutation() string {
 	  `
 }
 
+type BanStreamChatUserArgs UnbanStreamChatUserArgs
+
 // BanStreamChatUserMutation returns the graphql mutation for banning a user from a streamer's chat
 // Couldn't get in dev console, is based on UnbanStreamChatUserMutation
 func BanStreamChatUserMutation() string {
@@ -234,6 +294,19 @@ func BanStreamChatUserMutation() string {
 		}
 	  }
 	  `
+}
+
+type SetStreamTemplateInput struct {
+	AgeRestriction bool    `json:"ageRestriction"`
+	CategoryID     int     `json:"categoryID"`
+	DisableAlert   bool    `json:"disableAlert"`
+	LanguageID     int     `json:"languageID"`
+	ThumbnailURL   url.URL `json:"thumbnailUrl"`
+	Title          string  `json:"title"`
+}
+
+type SetStreamTemplateArgs struct {
+	Template SetStreamTemplateInput `json:"template"`
 }
 
 // SetStreamTemplateMutation returns the graphql mutation for saving a user's stream metadata
@@ -266,10 +339,21 @@ func GenerateStreamKeyMutation() string {
 	  `
 }
 
+type SaveEmoteInput struct {
+	Level   string `json:"level"`
+	MyLevel string `json:"myLevel"`
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+}
+
+type EmoteSaveArgs struct {
+	Input SaveEmoteInput `json:"input"`
+}
+
 // EmoteSaveMutation returns the graphql mutation for saving a sticker emote for the logged in user
 func EmoteSaveMutation() string {
-	return `mutation EmoteSave($stream: SaveEmoteInput!) {
-  saveEmote(stream: $stream) {
+	return `mutation EmoteSave($input: SaveEmoteInput!) {
+  saveEmote(input: $input) {
     emote {
       name
       username
@@ -290,10 +374,20 @@ func EmoteSaveMutation() string {
 `
 }
 
+type DeleteEmoteInput struct {
+	Level string `json:"level"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type EmoteDeleteArgs struct {
+	Input DeleteEmoteInput `json:"input"`
+}
+
 // EmoteDeleteMutation returns the graphql mutation for removing a sticker from the list of saved stickers for the logged in user
 func EmoteDeleteMutation() string {
-	return `mutation EmoteDelete($stream: DeleteEmoteInput!) {
-  deleteEmote(stream: $stream) {
+	return `mutation EmoteDelete($input: DeleteEmoteInput!) {
+  deleteEmote(input: $input) {
     err {
       code
       message
@@ -303,6 +397,10 @@ func EmoteDeleteMutation() string {
   }
 }
 `
+}
+
+type DeletePastBroadcastArgs struct {
+	Permlink string `json:"permlink"`
 }
 
 // DeleteLastBroadcastMutation returns the graphql mutation for deleting a stream replay
