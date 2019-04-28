@@ -18,9 +18,10 @@ const DefaultURLWebsocket = "wss://graphigostream.prd.dlive.tv/"
 
 // Client is used to send requests to DLive's API
 type Client struct {
-	Endpoint string          // The endpoint for DLive's API
-	Auth     string          // An authorization token to send along with requests
-	Feeds    map[string]Feed // Any active websocket streams the client is consuming
+	Endpoint          string          // The endpoint for DLive's API
+	WebsocketEndpoint string          // The endpoint used for making websocket connections
+	Auth              string          // An authorization token to send along with requests
+	Feeds             map[string]Feed // Any active websocket streams the client is consuming
 }
 
 func (c *Client) Feed(key string) (*Feed, error) {
@@ -37,151 +38,113 @@ func (c *Client) FeedCount() int {
 
 // GlobalInformation fetches language information about DLive
 func (c *Client) GlobalInformation() (Response, error) {
-	req := request{
+	req := Request{
 		Query: GlobalInformationQuery(),
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
 // Query Methods
-func (c *Client) LivestreamPage(args LivestreamPageArgs) (interface{}, error) {
-	req := request{
+func (c *Client) LivestreamPage(args LivestreamPageArgs) (Response, error) {
+	req := Request{
 		Query: LivestreamPageQuery(),
 		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) LivestreamChatRoomInfo(displayName string, isLoggedIn bool, limit string) (interface{}, error) {
-	req := request{
+func (c *Client) LivestreamChatRoomInfo(args LivestreamChatRoomInfoArgs) (Response, error) {
+	req := Request{
 		Query: LivestreamChatRoomInfoQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"isLoggedIn":  isLoggedIn,
-			"limit":       limit,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) LivestreamProfileVideos(displayName string, first string) (interface{}, error) {
-	req := request{
+func (c *Client) LivestreamProfileVideos(args LivestreamProfileVideoArgs) (Response, error) {
+	req := Request{
 		Query: LivestreamProfileVideoQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"first":       first,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) LivestreamProfileReplays(displayName string, first string) (interface{}, error) {
-	req := request{
+func (c *Client) LivestreamProfileReplays(args LivestreamProfileReplayArgs) (Response, error) {
+	req := Request{
 		Query: LivestreamProfileReplayQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"first":       first,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) LivestreamProfileFollowers(displayName string, sortBy string, first string, isLoggedIn bool) (interface{}, error) {
-	req := request{
+func (c *Client) LivestreamProfileFollowers(args LivestreamProfileFollowersArgs) (Response, error) {
+	req := Request{
 		Query: LivestreamProfileFollowersQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"sortBy":      sortBy,
-			"first":       first,
-			"isLoggedIn":  false,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) LivestreamProfileFollowing(displayName string, sortBy string, first string, isLoggedIn bool) (interface{}, error) {
-	req := request{
+func (c *Client) LivestreamProfileFollowing(args LivestreamProfileFollowingArgs) (Response, error) {
+	req := Request{
 		Query: LivestreamProfileFollowingQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"sortBy":      sortBy,
-			"first":       first,
-			"isLoggedIn":  false,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
 func (c *Client) LivestreamProfileWallet(args LivestreamProfileWalletArgs) (Response, error) {
-	req := request{
+	req := Request{
 		Query: LivestreamProfileWalletQuery(),
 		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) TopContributors(displayName string, rule string, first string, queryStream bool) (interface{}, error) {
-	req := request{
+func (c *Client) TopContributors(args TopContributorsArgs) (Response, error) {
+	req := Request{
 		Query: TopContributorsQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"rule":        rule,
-			"first":       first,
-			"queryStream": false,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) StreamChatBannedUsers(displayName string, first string, search string) (interface{}, error) {
-	req := request{
+func (c *Client) StreamChatBannedUsers(args StreamChatBannedUsersArgs) (Response, error) {
+	req := Request{
 		Query: StreamChatBannedUsersQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"first":       first,
-			"search":      search,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) StreamChatModerators(displayName string, first string, search string) (interface{}, error) {
-	req := request{
+func (c *Client) StreamChatModerators(args StreamChatModeratorsArgs) (Response, error) {
+	req := Request{
 		Query: StreamChatModeratorsQuery(),
-		Vars: map[string]interface{}{
-			"displayname": displayName,
-			"first":       first,
-			"search":      search,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
-func (c *Client) AllowedActions(username string, streamer string) (interface{}, error) {
-	req := request{
+func (c *Client) AllowedActions(args AllowedActionsArgs) (Response, error) {
+	req := Request{
 		Query: AllowedActionsQuery(),
-		Vars: map[string]interface{}{
-			"username": username,
-			"streamer": streamer,
-		},
+		Vars:  args,
 	}
-	return c.sendQuery(req)
+	return c.Send(req)
 }
 
 // Mutation Methods
-func (c *Client) SendStreamChat(input StreamChatInput) error {
-	req := request{
+func (c *Client) SendStreamChat(args SendStreamChatMessageArgs) (Response, error) {
+	req := Request{
 		Query: SendStreamChatMessageMutation(),
-		Vars: map[string]interface{}{
-			"stream": input,
-		},
+		Vars:  args,
 	}
-	return c.sendMutation(req)
+	return c.Send(req)
 }
 
 // Subscription Methods
-func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
-	k := "StreamMessageFeed:" + streamer
+func (c *Client) StreamMessageFeed(args StreamMessageFeedArgs) (*Subscription, error) {
+	k := "StreamMessageFeed:" + args.Streamer
 
 	if f, ok := c.Feeds[k]; ok {
 		if f.Active() {
@@ -189,20 +152,19 @@ func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
 		}
 	} else {
 		c.Feeds[k] = Feed{
+			key: k,
 			subscriptions: make(map[string]chan<- []byte),
 		}
 	}
 
 	f := c.Feeds[k]
 
-	r := webSocketRequest{
+	r := WebSocketRequest{
 		ID:   "1",
 		Type: "start",
-		Payload: request{
+		Payload: Request{
 			Query: StreamMessageSubscription(),
-			Vars: map[string]interface{}{
-				"streamer": streamer,
-			},
+			Vars:  args,
 		},
 	}
 
@@ -221,7 +183,9 @@ func (c *Client) StreamMessageFeed(streamer string) (*Subscription, error) {
 	return s, nil
 }
 
-func (c *Client) sendQuery(req request) (Response, error) {
+// Send takes the provided request, sends it to the DLive API endpoint, then returns the decoded JSON response
+func (c *Client) Send(req Request) (Response, error) {
+	client := http.Client{}
 	var body bytes.Buffer
 	var data Response
 
@@ -229,7 +193,21 @@ func (c *Client) sendQuery(req request) (Response, error) {
 		return data, err
 	}
 
-	resp, err := http.Post(c.Endpoint, "application/json", &body)
+	r, err := http.NewRequest(http.MethodPost, c.Endpoint, &body)
+
+	if err != nil {
+		return data, err
+	}
+
+	// API Client was given an auth token, set it to request header
+	if c.Auth != "" {
+		r.Header.Set("authorization", c.Auth)
+	}
+
+	r.Header.Set("content-type", "application/json")
+
+	resp, err := client.Do(r)
+	//resp, err := http.Post(c.Endpoint, "application/json", &body)
 
 	if err != nil {
 		return data, err
@@ -254,42 +232,9 @@ func (c *Client) sendQuery(req request) (Response, error) {
 	return data, nil
 }
 
-func (c *Client) sendMutation(req request) error {
-	var body bytes.Buffer
-
-	if err := json.NewEncoder(&body).Encode(req); err != nil {
-		return err
-	}
-
-	resp, err := http.Post(c.Endpoint, "application/json", &body)
-
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	var buf bytes.Buffer
-
-	if _, err := io.Copy(&buf, resp.Body); err != nil {
-		return err
-	}
-
-	var data Response
-
-	if err := json.NewDecoder(&buf).Decode(&data); err != nil {
-		return err
-	}
-
-	if len(data.Errors) > 0 {
-		return data.Errors[0]
-	}
-
-	return nil
-}
-
-func (c *Client) setupWebsocket(req webSocketRequest) (*websocket.Conn, error) {
-	conn, _, err := websocket.DefaultDialer.Dial(DefaultURLWebsocket, http.Header{
+// setupWebsocket is the default func used to setup a websocket connection for a feed
+func (c *Client) setupWebsocket(req WebSocketRequest) (*websocket.Conn, error) {
+	conn, _, err := websocket.DefaultDialer.Dial(c.WebsocketEndpoint, http.Header{
 		"Sec-WebSocket-Protocol": []string{"graphql-ws"},
 		"Sec-WebSocket-Version":  []string{"13"},
 	})
@@ -299,13 +244,12 @@ func (c *Client) setupWebsocket(req webSocketRequest) (*websocket.Conn, error) {
 		return nil, err
 	}
 
-	err = conn.WriteJSON(struct {
-		Type    string      `json:"type"`
-		Payload interface{} `json:"payload"`
-	}{
-		Type:    "connection_init",
-		Payload: map[string]interface{}{},
-	})
+	init := WebSocketRequest{
+		Type:    connectionInit,
+		Payload: Request{},
+	}
+
+	err = conn.WriteJSON(init)
 
 	if err != nil {
 		log.Println("Connection Init:", err)

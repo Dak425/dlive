@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -10,11 +11,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const connectionInit = "connection_init"
 const connectionAckMessage = "connection_ack"
 const connectionKeepAliveMessage = "ka"
 
 // WebsocketFunc is the function used to setup the websocket used by a Feed
-type WebsocketFunc func(request webSocketRequest) (*websocket.Conn, error)
+type WebsocketFunc func(request WebSocketRequest) (*websocket.Conn, error)
 
 // FeedMessage represents a GraphQL subscription message from DLive's API
 type FeedMessage struct {
@@ -24,7 +26,7 @@ type FeedMessage struct {
 
 type Subscription struct {
 	feed     *Feed         // The feed this subscription belongs to
-	key      string        // The unique ID for this subscription for its feed
+	Key      string        // The unique ID for this subscription for its feed
 	Messages <-chan []byte // Channel that all new Response are written to
 }
 
@@ -36,12 +38,18 @@ func (s Subscription) Close() {
 // Feed is a real-time data stream using a websocket
 // When a feed receives data from its websocket, its writes that data to all its subscribers
 type Feed struct {
+	key           string                   // Unique identifier for this feed
 	quit          chan<- bool              // The channel used to terminate the goroutine writing to the stream channel
 	subscriptions map[string]chan<- []byte // A group of channels interested in this websocket connection's Feed
 }
 
+func (f *Feed) String() string {
+	return fmt.Sprintf("feed(%s) -- subscription count(%d) -- active (%t)", f.key, len(f.subscriptions), f.Active())
+}
+
+// Active indicates if the feed has an active websocket connection
 func (f *Feed) Active() bool {
-	return f.quit == nil
+	return f.quit != nil
 }
 
 // Publish will send the data given to all output channels it currently knows of
@@ -57,14 +65,14 @@ func (f *Feed) Publish(p []byte) (int, error) {
 		return 0, errors.New("no output channels to write to")
 	}
 
-	for _, c := range f.subscriptions {
+	for k, c := range f.subscriptions {
 		go func(data []byte, c chan<- []byte) {
 			select {
 			case c <- data:
-				log.Println("Writing data to subscriber channel...")
+				log.Printf("(%s) -- writing data to subscriber channel (%s)...\n", f, k)
 				return
 			default:
-				log.Println("Waiting to write to subscriber channel...")
+				log.Printf("(%s) -- waiting to write to subscriber channel (%s)...\n", f, k)
 				time.Sleep(time.Second)
 			}
 		}(p, c)
@@ -89,7 +97,7 @@ func (f *Feed) Subscribe() (*Subscription, error) {
 
 	s = Subscription{
 		feed:     f,
-		key:      id.String(),
+		Key:      id.String(),
 		Messages: c,
 	}
 
@@ -98,9 +106,9 @@ func (f *Feed) Subscribe() (*Subscription, error) {
 
 // Unsubscribe closes the subscription's channel and removes it from its map of subscribers
 func (f *Feed) Unsubscribe(subscription Subscription) {
-	if c, ok := f.subscriptions[subscription.key]; ok {
+	if c, ok := f.subscriptions[subscription.Key]; ok {
 		close(c)
-		delete(f.subscriptions, subscription.key)
+		delete(f.subscriptions, subscription.Key)
 
 		if len(f.subscriptions) == 0 {
 			f.Close()
@@ -126,9 +134,9 @@ func (f *Feed) Close() {
 	}
 }
 
-// Start uses the provided request and websocketFunc to start a GraphQL websocket connection
+// Start uses the provided Request and websocketFunc to start a GraphQL websocket connection
 // Returns an error if the feed already been started
-func (f *Feed) Start(socketRequest webSocketRequest, websocketFunc WebsocketFunc) error {
+func (f *Feed) Start(socketRequest WebSocketRequest, websocketFunc WebsocketFunc) error {
 	if f.quit != nil {
 		return errors.New("feed has already been started")
 	}
@@ -149,16 +157,16 @@ func (f *Feed) Start(socketRequest webSocketRequest, websocketFunc WebsocketFunc
 		for {
 			select {
 			case <-quitFeed:
-				log.Println("termination signal received, terminating consumer...")
+				log.Printf("(%s) -- termination signal received, terminating consumer...\n", f)
 				quitConsume <- true
 				close(quitConsume)
 				return
 			case m := <-streamConsume:
 				if _, err := feed.Publish(m); err != nil {
-					log.Println("error when publishing stream to subscribers: ", err)
+					log.Printf("(%s) -- error when publishing stream to subscribers: %s\n", f, err)
 				}
 			default:
-				log.Println("waiting on message from socket...")
+				log.Printf("(%s) -- waiting on message from socket...\n", f)
 				time.Sleep(time.Second)
 			}
 		}
@@ -195,10 +203,10 @@ func (f *Feed) Consume(conn *websocket.Conn) (chan<- bool, <-chan []byte) {
 
 			select {
 			case <-quit:
-				log.Println("Termination signal received, closing websocket and channel...")
+				log.Printf("(%s) -- termination signal received, closing websocket and channel...\n", f)
 				return
 			case stream <- m:
-				log.Println("Writing stream to feed...")
+				log.Printf("(%s) -- writing stream to feed...\n", f)
 			}
 		}
 	}(conn, q, s)

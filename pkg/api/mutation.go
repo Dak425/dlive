@@ -376,8 +376,8 @@ func EmoteSaveMutation() string {
 
 type DeleteEmoteInput struct {
 	Level string `json:"level"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
 }
 
 type EmoteDeleteArgs struct {
