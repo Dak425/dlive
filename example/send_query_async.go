@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Dak425/dlive/pkg/api"
+	. "github.com/Dak425/dlive/pkg/api"
 )
 
 func main() {
-	c := api.Client{
-		Endpoint: api.DefaultURL,
-		Feeds:    make(map[string]api.Feed),
+	c := Client{
+		Endpoint: DefaultURL,
+		Feeds:    make(map[string]Feed),
 	}
 
-	rc := make(chan api.Response)
+	rc := make(chan Response)
 
-	go func(responseChan chan<- api.Response, client api.Client) {
+	go func(responseChan chan<- Response, client Client) {
 		resp, err := c.GlobalInformation()
 
 		if err != nil {
@@ -30,7 +30,7 @@ func main() {
 		return
 	}(rc, c)
 
-	resp := <- rc
+	resp := <-rc
 
 	prettyResponse, err := json.MarshalIndent(resp, "", " ")
 
