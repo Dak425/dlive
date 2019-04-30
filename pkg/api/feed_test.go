@@ -72,3 +72,29 @@ func TestFeed_Subscribe(t *testing.T) {
 		t.Error("subscription has incorrect feed reference")
 	}
 }
+
+func TestFeed_Unsubscribe(t *testing.T) {
+	c := make(chan []byte)
+	q := make(chan bool)
+
+	s := Subscription{
+		Key: "1",
+		Messages: c,
+	}
+
+	f := Feed{
+		quit: q,
+		subscriptions: map[string]chan<- []byte{
+			s.Key: c,
+			"2": make(chan<- []byte),
+		},
+	}
+
+	f.Unsubscribe(s)
+	
+	subCount := len(f.subscriptions)
+
+	if subCount != 1 {
+		t.Errorf("feed should have 0 active subscriptions, still has %d", subCount)
+	}
+}
