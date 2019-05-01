@@ -91,10 +91,38 @@ func TestFeed_Unsubscribe(t *testing.T) {
 	}
 
 	f.Unsubscribe(s)
-	
+
 	subCount := len(f.subscriptions)
 
 	if subCount != 1 {
 		t.Errorf("feed should have 0 active subscriptions, still has %d", subCount)
+	}
+}
+
+func TestFeed_Close(t *testing.T) {
+	q := make(chan bool)
+
+	f := Feed{
+		quit: q,
+		subscriptions: map[string]chan<- []byte{
+			"1": make(chan<- []byte),
+			"2": make(chan<- []byte),
+		},
+	}
+
+	go f.Close()
+
+	sig := <- q
+
+	if !sig {
+		t.Error("feed should send true bool value to quit channel during close")
+	}
+
+	if len(f.subscriptions) > 0 {
+		t.Error("feed should not have any subscriptions left over after close")
+	}
+
+	if f.quit != nil {
+		t.Error("feed's quit channel should be unset during close")
 	}
 }
