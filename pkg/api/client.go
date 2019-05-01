@@ -44,6 +44,44 @@ func (c *Client) GlobalInformation() (Response, error) {
 	return c.Send(req)
 }
 
+func (c *Client) MeGlobal() (Response, error) {
+	req := Request{
+		Query: MeGlobalQuery(),
+	}
+	return c.Send(req)
+}
+
+func (c *Client) MeDashboard(args MeDashboardArgs) (Response, error) {
+	req := Request{
+		Query: MeDashboardQuery(),
+		Vars: args,
+	}
+	return c.Send(req)
+}
+
+func (c *Client) MeLivestream(args MeLivestreamArgs) (Response, error) {
+	req := Request{
+		Query: MeLivestreamQuery(),
+		Vars: args,
+	}
+	return c.Send(req)
+}
+
+func (c *Client) MeSubscribing(args MeSubscribingArgs) (Response, error) {
+	req := Request{
+		Query: MeSubscribingQuery(),
+		Vars: args,
+	}
+	return c.Send(req)
+}
+
+func (c *Client) MePartnerProgress() (Response, error) {
+	req := Request{
+		Query: MePartnerProgressQuery(),
+	}
+	return c.Send(req)
+}
+
 func (c *Client) MeBalance() (Response, error) {
 	req := Request{
 		Query: MeBalanceQuery(),
