@@ -7,6 +7,7 @@ const RoomRoleModerator = "Moderator"
 
 // Contribution Summary Rules
 const ContributionSummaryMonth = "THIS_MONTH"
+const ContributionSummaryStream = "THIS_STREAM"
 const ContributionSummaryAll = "ALL_TIME"
 
 // Sorting
